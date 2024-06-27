@@ -1,0 +1,53 @@
+name: Development Build
+on: [pull_request, push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+    steps:
+      - name: Install toml-cli
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: toml-cli
+
+      - name: Install Jsonxf
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: jsonxf
+
+      - name: Install packwiz
+        uses: actionhippie/install-packwiz@v1
+
+      - name: Checkout Repository Files
+        uses: actions/checkout@v4
+
+      - name: Get pack name
+        id: get_pack_name
+        run: |
+          echo "::set-output name=value::$(toml get pack.toml name | sed -e 's/^"//' -e 's/"$//')"
+
+      - name: Get minecraft version
+        id: get_minecraft_version
+        run: |
+          echo "::set-output name=value::$(toml get pack.toml versions.minecraft | sed -e 's/^"//' -e 's/"$//')"
+
+      - name: Set pack version
+        id: set_pack_version
+        run: |
+          echo "$(toml set pack.toml version dev-${{ github.sha }})" > pack.toml
+          echo "::set-output name=value::dev-${{ github.sha }}"
+
+      - name: Write main menu version
+        run: |
+          echo "$(jsonxf -s '{"main_menu":{"bottom_left":[{"text":"${{ steps.get_pack_name.outputs.value }} ${{ steps.set_pack_version.outputs.value }}","clickEvent":{"action":"open_url","value":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}}]}}')" > config/isxander-main-menu-credits.json
+
+      - name: Refresh and build .mrpack
+        run: packwiz refresh && packwiz mr export
+
+      - name: Publish artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: "Development Build - ${{ github.sha }}"
+          path: "*.mrpack"

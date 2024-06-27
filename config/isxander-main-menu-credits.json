@@ -1,0 +1,13 @@
+{
+	"main_menu": {
+		"bottom_left": [
+			{
+				"text": "IF YOU ARE SEEING THIS IN GAME, SOMETHING WENT WRONG",
+				"clickEvent": {
+					"action": "open_url",
+					"value": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+				}
+			}
+		]
+	}
+}

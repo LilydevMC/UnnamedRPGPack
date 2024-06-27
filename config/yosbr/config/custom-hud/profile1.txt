@@ -1,0 +1,10 @@
+Minecraft &{#f5c2e7}{version}&f &7// &{#f5c2e7}{client_version}&f
+&{#f5c2e7}{fps}&f/{{max_fps, "{max_fps}", "inf"}}&f fps{{vsync, " (vsync)", ""}}
+
+&{#f38ba8}X&{#a6e3a1}Y&{#89dceb}Z: &{#f38ba8}{bx} &{#a6e3a1}{by} &{#89dceb}{bz}
+
+Facing: &{#f5c2e7}{facing}&f (&{#f5c2e7}{yaw}&f, &{#f5c2e7}{pitch}&f)
+Biome: &{#f5c2e7}{biome} &7&o({biome_id})
+
+{{nether, "Overworld:", "Nether:"}}&{#f5c2e7} {nx} {nz}
+Time: &{#f5c2e7}{real_time:HH:mm}

@@ -1,0 +1,117 @@
+name: Release to Github & Modrinth
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        type: string
+        description: Modpack Version
+        required: true
+      prerelease:
+        type: boolean
+        description: Prerelease
+        required: true
+        default: false
+      release-type:
+        type: string
+        description: Modrinth release type (release, beta, alpha)
+        required: true
+        default: "alpha"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: Release to Github & Modrinth
+    env:
+      GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+    steps:
+      - name: Validate release type
+        run: |
+          if [ "${{ github.event.inputs.release-type }}" != "release" ] && [ "${{ github.event.inputs.release-type }}" != "beta" ] && [ "${{ github.event.inputs.release-type }}" != "alpha" ]; then
+            echo "Invalid release type. Must be one of 'release', 'beta', or 'alpha'."
+            exit 1
+          fi
+
+      - name: Install toml-cli
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: toml-cli
+
+      - name: Install Jsonxf
+        uses: baptiste0928/cargo-install@v3
+        with:
+          crate: jsonxf
+
+      - name: Install packwiz
+        uses: actionhippie/install-packwiz@v1
+
+      - name: Checkout Repository Files
+        uses: actions/checkout@v4
+
+      - name: Get pack name
+        id: get_pack_name
+        run: |
+          echo "::set-output name=value::$(toml get pack.toml name | sed -e 's/^"//' -e 's/"$//')"
+
+      - name: Get minecraft version
+        id: get_minecraft_version
+        run: |
+          echo "::set-output name=value::$(toml get pack.toml versions.minecraft | sed -e 's/^"//' -e 's/"$//')"
+
+      - name: Set pack version
+        run: |
+          echo "$(toml set pack.toml version ${{ github.event.inputs.version }})" > pack.toml
+
+      - name: Write main menu version
+        run: |
+          echo "$(jsonxf -s '{"main_menu":{"bottom_left":[{"text":"${{ steps.get_pack_name.outputs.value }} v${{ github.event.inputs.version }}","clickEvent":{"action":"open_url","value":"https://www.youtube.com/watch?v=dQw4w9WgXcQ"}}]}}')" > config/isxander-main-menu-credits.json
+
+      - name: Refresh and build .mrpack
+        run: packwiz refresh && packwiz mr export
+
+      - name: Publish artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: "*.mrpack"
+
+      # TODO: REPLACE INFO BELOW
+
+      - name: Publish to GitHub & Modrinth
+        id: publish_pack
+        uses: Kir-Antipov/mc-publish@v3.3
+        with:
+          modrinth-id: MODRINTH ID
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+
+          github-token: ${{ secrets.RELEASE_TOKEN }}
+          github-tag: v${{ github.event.inputs.version }}
+          github-prerelease: ${{ github.event.inputs.prerelease }}
+
+          name: ${{ steps.get_pack_name.outputs.value }} v${{ github.event.inputs.version }}
+          version: v${{ github.event.inputs.version }}
+          version-type: ${{ github.event.inputs.release-type }}
+          game-versions: ${{ steps.get_minecraft_version.outputs.value }}
+          loaders: fabric
+
+          files: "*.mrpack"
+
+      - name: Send Discord webhook
+        uses: tsickert/discord-webhook@v5.3.0
+        with:
+          webhook-url: ${{ secrets.PERSONAL_DISCORD_WEBHOOK_URL }}
+          content: "<@&1253506404216471572>"
+          username: "${{ steps.get_pack_name.outputs.value }} - Updates"
+          avatar-url: "https://cdn.jsdelivr.net/gh/${{ github.repository }}@v2/assets/icon.png"
+
+          embed-author-name: ${{ github.repository_owner }}
+          embed-author-icon-url: "https://github.com/${{ github.repository_owner }}.png"
+
+          embed-title: "${{ steps.get_pack_name.outputs.value }} v${{ github.event.inputs.version }}"
+          embed-color: 0xf38ba8
+          embed-image-url: "https://cdn.jsdelivr.net/gh/${{ github.repository }}@v2/assets/banner.png"
+          embed-thumbnail-url: "https://cdn.jsdelivr.net/gh/${{ github.repository }}@v2/assets/icon.png"
+
+          embed-description: |
+            - <:modrinth:1253522830121893899> **[Modrinth](${{ steps.publish_pack.outputs.modrinth-url }})** (Recommended)
+            - <:github:1253522536856162334> [GitHub Releases](${{ steps.publish_pack.outputs.github-url }})
+            - <:code:1253523807025762414> [Source code](https://github.com/${{ github.repository }})

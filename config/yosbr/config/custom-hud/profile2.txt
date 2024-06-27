@@ -1,0 +1,2 @@
+&{#f5c2e7}{fps}&f/{{max_fps, "{max_fps}", "inf"}}&f fps{{vsync, " (vsync)", ""}}
+&{#f38ba8}X&{#a6e3a1}Y&{#89dceb}Z: &{#f38ba8}{bx} &{#a6e3a1}{by} &{#89dceb}{bz}
